@@ -15,7 +15,12 @@
       "Bash(done)",
       "Read(//c/Program Files/Java/**)",
       "Read(//c/Program Files/**)",
-      "Bash(echo \"JAVA_HOME=$JAVA_HOME\")"
+      "Bash(echo \"JAVA_HOME=$JAVA_HOME\")",
+      "Read(//c/Program Files/Java/latest/**)",
+      "Read(//c/Users/240422/.jdks/**)",
+      "Read(//c/Program Files/Android/Android Studio/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m '@ *)"
     ]
   }
 }
