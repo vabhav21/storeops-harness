@@ -20,7 +20,8 @@
       "Read(//c/Users/240422/.jdks/**)",
       "Read(//c/Program Files/Android/Android Studio/**)",
       "Bash(git add *)",
-      "Bash(git commit -m '@ *)"
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit *)"
     ]
   }
 }
