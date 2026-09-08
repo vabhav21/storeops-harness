@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /tmp)",
+      "Bash(python -c \"import pypdf; print\\(''''pypdf ok''''\\)\")",
+      "Bash(python -c \"import pdfplumber; print\\(''''pdfplumber ok''''\\)\")",
+      "Bash(npm -v)",
+      "Bash(py -3 -V)",
+      "Bash(where pwsh:*)",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".harness/tmp-pdftext.ps1\" -Path \"C:\\\\Users\\\\240422\\\\OneDrive - Cognizant\\\\Desktop\\\\Using_Claude_AI_Builder-Cloud\\\\Claude_AI_Native_Architect_Build_Track_SA_M_SM_AD.pdf\")",
+      "Read(//tmp/**)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Claude_Workspace/storeops-harness/**)",
+      "Bash(done)",
+      "Read(//c/Program Files/Java/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(echo \"JAVA_HOME=$JAVA_HOME\")"
+    ]
+  }
+}

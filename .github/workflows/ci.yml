@@ -1,0 +1,37 @@
+name: CI
+
+# Second, independent gate on main — see CLAUDE.md Section 6 ("CI/CD
+# relationship"). The harness Evaluator runs the same checks locally as a
+# fast-fail gate before code is ever pushed; this workflow re-runs them on
+# the server so a harness misconfiguration cannot let a violation reach
+# main. If this workflow fails on something the Evaluator passed, that gap
+# is a skill-file correction tracked via .harness/reviews/.
+#
+# Kept in .github/ deliberately: harness definition files live in
+# .harness/, CI/CD configuration lives here (CLAUDE.md Section 2.2).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Equivalent of the Evaluator's `mvn checkstyle:check spotbugs:check
+      # test` hard gate. `verify` is used here because both plugins are
+      # bound to that phase, which guarantees SpotBugs analyses freshly
+      # compiled bytecode rather than a stale target/classes.
+      - name: Checkstyle + SpotBugs + tests
+        run: mvn -B verify

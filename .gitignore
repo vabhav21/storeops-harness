@@ -1,0 +1,20 @@
+# Build output
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Harness working files: .harness/output/ holds in-progress spec.md /
+# sprint-N-contract.md for the CURRENT run and is normally gitignored —
+# only .harness/reviews/ (the permanent audit trail) is committed by
+# default. For THIS submission, spec.md and sprint-1-contract.md were
+# force-added (git add -f) as demonstration-run evidence per Section 6.3
+# of the capstone spec, so they are tracked despite this rule.
+.harness/output/*
+!.harness/output/.gitkeep
