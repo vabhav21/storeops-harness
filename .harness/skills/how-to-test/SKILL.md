@@ -48,6 +48,14 @@ Every new public method on a `*Service` interface needs at minimum:
 
 ## Automated check command (Java stack)
 
-`mvn checkstyle:check spotbugs:check test` — the Evaluator runs this
-verbatim as a hard gate. `BUILD SUCCESS` with 0 Checkstyle/SpotBugs
-violations and all tests passing is required for PASS.
+`mvn clean verify` — the Evaluator runs this verbatim as a hard gate.
+`BUILD SUCCESS` with 0 Checkstyle/SpotBugs violations and all tests
+passing is required for PASS.
+
+**Do not substitute `mvn checkstyle:check spotbugs:check test`.** Both
+plugins are bound to the `verify` phase in `pom.xml`, and SpotBugs
+analyses *bytecode*: invoked as a bare goal against a clean tree it
+finds no classes and reports `BUILD SUCCESS` without analysing anything,
+which turns a hard gate into a vacuous one. `clean verify` guarantees
+the gate runs against freshly compiled classes. Verified: on a clean
+tree `mvn spotbugs:check` exits 0 having analysed zero classes.

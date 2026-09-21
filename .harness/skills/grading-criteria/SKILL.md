@@ -7,8 +7,8 @@ summing to 100%, each with deterministic hard gates.
 
 | Check | Type | Hard gate? |
 |---|---|---|
-| `mvn checkstyle:check` passes | Automated | **Yes** |
-| `mvn spotbugs:check` passes | Automated | **Yes** |
+| Checkstyle reports 0 violations (via `mvn clean verify`) | Automated | **Yes** |
+| SpotBugs reports 0 findings (via `mvn clean verify`) | Automated | **Yes** |
 | Zero cross-module repository imports | Automated (grep) | **Yes** |
 | Zero raw `throw new RuntimeException`/`Error` in service/routes | Automated (grep) | **Yes** |
 | Cross-module side effects use `EventBus.emit(...)` | LLM-assessed, cited | **Yes** |
@@ -25,7 +25,7 @@ will not accept.
 
 | Check | Type | Hard gate? |
 |---|---|---|
-| `mvn test` passes (BUILD SUCCESS) | Automated | **Yes** |
+| All tests pass — `BUILD SUCCESS` from `mvn clean verify` | Automated | **Yes** |
 | Every AC in the sprint contract has a corresponding test | LLM-assessed, cited | No — soft check |
 | At least one test per `AppError` subtype the method can throw | LLM-assessed, cited | No — soft check |
 | At least one test asserts event type + payload for any `emit(...)` call | LLM-assessed, cited | No — soft check |

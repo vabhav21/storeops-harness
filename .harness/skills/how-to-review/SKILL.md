@@ -6,10 +6,12 @@ thresholds (those live in `grading-criteria/SKILL.md`).
 
 ## Procedure
 
-1. **Run automated checks first.** `mvn checkstyle:check spotbugs:check
-   test`. Capture the exit code and the failing rule IDs / test names
-   verbatim — do not paraphrase a Checkstyle violation, quote its rule
-   ID.
+1. **Run automated checks first.** `mvn clean verify` — not
+   `mvn checkstyle:check spotbugs:check test`, which lets the SpotBugs
+   gate pass vacuously against a clean tree (see
+   `how-to-test/SKILL.md`, "Automated check command"). Capture the exit
+   code and the failing rule IDs / test names verbatim — do not
+   paraphrase a Checkstyle violation, quote its rule ID.
 2. **Check module boundaries mechanically.** Grep new/changed files for
    `import com.cognizant.storeops.<other-module>.repository` — any hit
    outside the module owning that repository is an automatic hard-gate

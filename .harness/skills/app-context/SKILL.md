@@ -25,8 +25,10 @@ in-app alerts, and pull performance reports.
 ## Stack (this repository)
 
 Java 17, Spring Boot 3.3, Spring Data JPA, H2 (in-memory), JUnit 5 +
-MockMvc, Checkstyle + SpotBugs. Build/verify command: `mvn checkstyle:check
-spotbugs:check test`.
+MockMvc, Checkstyle + SpotBugs. Build/verify command: `mvn clean verify`
+— both linters are bound to the `verify` phase, so this single command is
+the whole gate. Requires JDK 17 on `JAVA_HOME`; a Java 8 runtime fails
+the Surefire fork with a class-file-version error.
 
 ## Base URL and running locally
 

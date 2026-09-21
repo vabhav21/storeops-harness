@@ -2,6 +2,18 @@ STATUS: AWAITING APPROVAL
 
 # Spec — Planogram Task Template
 
+**Source prompt:** `PROMPT.md` — *"Add planogram task template — POST
+/api/programmes/{id}/templates to clone a standard set of PLANOGRAM
+tasks into a new store programme, applying department assignments and
+default priorities from the template definition. The programmes module
+must not write directly into the activities module's tables; the intent
+to create tasks must be raised as a cross-module event."* Invoked as
+`@planner <feature>` per `CLAUDE.md` Section 1.
+
+The prompt's final sentence is what drives the event-bus decision in
+Sprint 1's acceptance criteria below, and is traced through to
+`DESIGN_BRIEF.md` Section D, Decision 1.
+
 ## Feature summary
 
 Allow a store programme to have a standard set of PLANOGRAM tasks

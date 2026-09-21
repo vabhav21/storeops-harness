@@ -1,5 +1,16 @@
 # Sprint 1 Contract — Planogram Task Template (emitting side)
 
+**Derived from:** `.harness/output/spec.md`, "Sprint list" → Sprint 1.
+This contract covers the emitting side only; spec.md's "Module(s)
+touched" section places the `activities` listener explicitly out of
+scope, and spec.md's open question (whether re-applying a template
+should be rejected) is resolved here as *always allowed*, matching the
+Planner's stated default.
+
+**Boundary rule this contract inherits:** `PROMPT.md`'s requirement that
+`programmes` must not write into the `activities` module's tables — this
+is what makes AC1 assert an emitted event rather than created Task rows.
+
 ## Goal
 
 `programmes` module exposes `POST /api/programmes/{id}/templates` and

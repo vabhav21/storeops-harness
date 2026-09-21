@@ -53,7 +53,7 @@ loop:
         -> writes .harness/output/generator-summary.md
 
     Evaluator reads generator-summary.md + evaluation skills
-        -> runs automated checks (mvn checkstyle:check spotbugs:check test)
+        -> runs automated checks (mvn clean verify)
         -> writes .harness/output/evaluator-feedback.md with verdict:
              PASS | CONDITIONAL PASS | FAIL
 
@@ -100,8 +100,11 @@ problem is judged to need human judgement, not another AI pass.
 
 ## 6. CI/CD relationship
 
-The Evaluator's automated checks (`mvn checkstyle:check spotbugs:check
-test`) **precede** the existing CI pipeline — they are a local, fast-fail
+The Evaluator's automated checks (`mvn clean verify` — Checkstyle and
+SpotBugs are both bound to the `verify` phase in `pom.xml`, so one
+command is the whole gate; invoking the goals bare against a clean tree
+would let SpotBugs report success without analysing any bytecode)
+**precede** the existing CI pipeline — they are a local, fast-fail
 gate the harness runs before code is ever pushed. They do not replace CI:
 the same commands are expected to also run in the project's CI/CD
 pipeline (`.github/workflows/`, kept separate from `.harness/` per
