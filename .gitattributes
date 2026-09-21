@@ -1,0 +1,19 @@
+# Submission packaging.
+#
+# `git archive` is the supported way to build a submission bundle (see
+# DEPLOYMENT.md, "Packaging a submission bundle"). It already excludes
+# .git/ and anything gitignored such as target/ — the two things that
+# buried the real evidence in an earlier bundle, where 356 .git/ entries
+# and 157 target/ entries pushed the first source file to position 426 of
+# 697 and the grader's extractor never reached src/.
+#
+# .claude/ holds per-machine Claude Code permission state. It is tracked
+# for local convenience but carries no evidentiary value, and as the
+# alphabetically-first entry it is what an extractor reports when it can
+# read only the front of an archive. Keep it out of bundles.
+/.claude export-ignore
+/.gitattributes export-ignore
+
+# Normalise line endings so bundles are consistent regardless of the
+# machine that builds them.
+* text=auto

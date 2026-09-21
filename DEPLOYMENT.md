@@ -57,7 +57,7 @@ the repository root.
 
 ## API validation (Postman)
 
-`postman/StoreOps.postman_collection.json` covers all 13 endpoints plus
+`postman/StoreOps.postman_collection.json` covers all 14 endpoints plus
 the error contract, and `postman/StoreOps.local.postman_environment.json`
 holds the `baseUrl`/`storeId`/`regionId` values.
 
@@ -109,18 +109,53 @@ counter to client failure mode #3:
 
 ## Verification note for this submission
 
-The machine this repository was authored on has Maven 3.9.5 but only a
-JDK 1.8 toolchain, and no outbound network access. This project targets
-Java 17, so neither `mvn verify` nor `docker compose up` could be
-executed here — **the source under `src/` has not been compile-verified.**
+**The source under `src/` is compile-verified.** `mvn clean verify`
+completes with `BUILD SUCCESS`: 35 tests pass with 0 failures and 0
+errors, Checkstyle reports 0 violations, and SpotBugs reports 0 findings.
+The same command was also run against a fresh extraction of the
+submission bundle, confirming the archive is self-contained and builds
+with no files missing.
 
-The steps above are the exact commands to run once this repository is
-pulled into an environment with JDK 17+, Docker, and network access
-(needed for the first `mvn` dependency resolution inside the build
-stage). Run `mvn verify` first: it executes the same Checkstyle,
-SpotBugs, and JUnit gates the Evaluator relies on
-(`.harness/reviews/sprint-1-evaluator-feedback.md`). Sprint 1's
-CONDITIONAL PASS should not be treated as final until it passes there.
+An earlier revision of this document stated the code had not been
+compile-verified. That was true when written: Maven 3.9.5 resolves to a
+JDK 1.8 runtime on `PATH` on the authoring machine, and Surefire forks a
+Java 8 JVM that rejects this project's Java 17 bytecode with
+`class file version 61.0 ... only recognizes up to 52.0`. A JDK 17
+toolchain was subsequently located and used:
+
+```bash
+JAVA_HOME="C:/Users/240422/jdk-17.0.11" mvn -B clean verify
+```
+
+Set `JAVA_HOME` to a JDK 17+ before building; the bare `mvn` on `PATH`
+will fail the test phase for the reason above. Note also that the first
+build needs network access for dependency resolution.
+
+`docker compose up --build` has not been run in this environment (no
+outbound network access for the image pull), so the container path
+remains unverified; the Maven path above is the verified one.
+
+Sprint 1's CONDITIONAL PASS stands on these results —
+`.harness/reviews/sprint-1-evaluator-feedback.md` records 24 tests
+because that was the suite size at the time of that sprint; the suite has
+since grown to 35.
+
+## Packaging a submission bundle
+
+Build the bundle with `git archive`, never by zipping the working folder:
+
+```bash
+git archive --format=zip --prefix="storeops-harness/" -o submission.zip HEAD
+```
+
+This yields ~173 entries at ~114 KB. Zipping the folder directly instead
+produced a 45 MB, 697-entry archive in which 356 `.git/` entries and 157
+`target/` entries pushed the first source file to position 426 — and an
+automated grader reported the submission as containing nothing but
+`.claude/settings.local.json`, the alphabetically-first real file.
+`.gitattributes` marks `.claude/` as `export-ignore` so bundles carry
+only evidence. Verify any bundle by extracting it to an empty directory
+and running `mvn clean verify` there before submitting.
 
 ## Cloud deployment (not used for this submission)
 

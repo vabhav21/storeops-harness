@@ -1,0 +1,646 @@
+{
+  "info": {
+    "name": "StoreOps API",
+    "description": "Endpoint + architecture-rule validation for the StoreOps reference app.\n\nRun the folders in order — requests chain via collection variables (projectId, taskId, staffId). The 'Error contract' folder validates the AppError body shape from GlobalExceptionHandler, which is architecture rule 3.\n\nBase URL defaults to http://localhost:8080; override with the baseUrl variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "storeId", "value": "store-6" },
+    { "key": "regionId", "value": "region-3" },
+    { "key": "projectId", "value": "" },
+    { "key": "taskId", "value": "" },
+    { "key": "staffId", "value": "" },
+    { "key": "staffEmail", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Programmes",
+      "item": [
+        {
+          "name": "Create programme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('status defaults to ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));",
+                  "pm.test('store assignment persisted', () => pm.expect(body.storeId).to.eql(pm.collectionVariables.get('storeId')));",
+                  "pm.test('id issued', () => pm.expect(body.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('projectId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/programmes", "host": ["{{baseUrl}}"], "path": ["api", "programmes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Store Setup\",\n  \"storeId\": \"{{storeId}}\",\n  \"regionId\": \"{{regionId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get programme by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('returns the programme just created', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('projectId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/programmes/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programmes", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "List programmes by store",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('array returned', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('contains the created programme', () => pm.expect(pm.response.json().map(p => p.id)).to.include(pm.collectionVariables.get('projectId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/programmes?storeId={{storeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programmes"],
+              "query": [{ "key": "storeId", "value": "{{storeId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Add member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const members = pm.response.json().members;",
+                  "pm.test('membership recorded on the programme', () => pm.expect(members).to.be.an('array').with.lengthOf.at.least(1));",
+                  "pm.test('role stored against the member', () => pm.expect(members.map(m => m.role)).to.include('STORE_MANAGER'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/programmes/{{projectId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programmes", "{{projectId}}", "members"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": \"staff-1\",\n  \"role\": \"STORE_MANAGER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Apply planogram template (202 - async via event bus)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('202 Accepted, not 200 - task creation is async', () => pm.response.to.have.status(202));",
+                  "pm.test('programme is echoed back unchanged in status', () => pm.expect(pm.response.json().status).to.eql('ACTIVE'));",
+                  "// Rule 2: programmes must NOT write Task rows itself. It emits",
+                  "// PROGRAMME_TEMPLATE_APPLIED and the activities module listens.",
+                  "// The listener is a known open item (see sprint-1-evaluator-feedback.md),",
+                  "// so no Task rows appear yet. That absence is the expected result",
+                  "// today, and is what the follow-up sprint will change."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/programmes/{{projectId}}/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programmes", "{{projectId}}", "templates"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateName\": \"Standard Planogram\",\n  \"tasks\": [\n    {\n      \"title\": \"Reset endcap 3\",\n      \"department\": \"Grocery\",\n      \"priority\": \"HIGH\",\n      \"category\": \"PLANOGRAM\"\n    },\n    {\n      \"title\": \"Reset aisle 7\",\n      \"department\": \"Dairy\",\n      \"priority\": \"MEDIUM\",\n      \"category\": \"PLANOGRAM\"\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Activities",
+      "item": [
+        {
+          "name": "Create task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('status defaults to TODO', () => pm.expect(body.status).to.eql('TODO'));",
+                  "pm.test('category persisted', () => pm.expect(body.category).to.eql('PLANOGRAM'));",
+                  "pm.test('completedAt not stamped yet', () => pm.expect(body.completedAt).to.be.oneOf([null, undefined]));",
+                  "pm.collectionVariables.set('taskId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/activities", "host": ["{{baseUrl}}"], "path": ["api", "activities"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Reset endcap 3\",\n  \"storeId\": \"{{storeId}}\",\n  \"projectId\": \"{{projectId}}\",\n  \"department\": \"Grocery\",\n  \"assigneeStaffId\": \"staff-1\",\n  \"category\": \"PLANOGRAM\",\n  \"priority\": \"HIGH\",\n  \"dueAt\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Create task with defaults (no category/priority)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('category defaults to GENERAL', () => pm.expect(body.category).to.eql('GENERAL'));",
+                  "pm.test('priority defaults to MEDIUM', () => pm.expect(body.priority).to.eql('MEDIUM'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/activities", "host": ["{{baseUrl}}"], "path": ["api", "activities"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sweep aisle 4\",\n  \"storeId\": \"{{storeId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get task by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('returns the requested task', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('taskId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Move task to DONE (emits TASK_COMPLETED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('status is DONE', () => pm.expect(body.status).to.eql('DONE'));",
+                  "pm.test('completedAt stamped on transition to DONE', () => pm.expect(body.completedAt).to.not.be.null);",
+                  "// TASK_COMPLETED is emitted on the in-memory bus. Confirm in the",
+                  "// application log; no HTTP surface exposes the bus by design."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/{{taskId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "{{taskId}}", "status"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"DONE\"\n}" }
+          }
+        },
+        {
+          "name": "Re-open DONE task (409 - DONE is terminal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('typed CONFLICT code, not a stack trace', () => pm.expect(pm.response.json().code).to.eql('CONFLICT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/{{taskId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "{{taskId}}", "status"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Staff",
+      "item": [
+        {
+          "name": "Register staff",
+          "event": [
+            {
+              "listen": "pre-request",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique email so the collection stays re-runnable against a",
+                  "// warm H2 instance without tripping the duplicate-email conflict.",
+                  "pm.collectionVariables.set('staffEmail', 'asha+' + Date.now() + '@example.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('role stored', () => pm.expect(body.role).to.eql('DEPARTMENT_LEAD'));",
+                  "pm.test('store assignment stored', () => pm.expect(body.storeId).to.eql(pm.collectionVariables.get('storeId')));",
+                  "pm.collectionVariables.set('staffId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/staff", "host": ["{{baseUrl}}"], "path": ["api", "staff"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"fullName\": \"Asha Patel\",\n  \"role\": \"DEPARTMENT_LEAD\",\n  \"storeId\": \"{{storeId}}\",\n  \"regionId\": \"{{regionId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get staff by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('returns the registered staff member', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('staffId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/staff/{{staffId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staff", "{{staffId}}"]
+            }
+          }
+        },
+        {
+          "name": "Register duplicate email (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('CONFLICT code', () => pm.expect(pm.response.json().code).to.eql('CONFLICT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/staff", "host": ["{{baseUrl}}"], "path": ["api", "staff"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"fullName\": \"Asha Patel\",\n  \"role\": \"ASSOCIATE\",\n  \"storeId\": \"{{storeId}}\",\n  \"regionId\": \"{{regionId}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Alerts",
+      "item": [
+        {
+          "name": "List alerts for staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('array returned', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "// Expected to be empty: notifications are only raised from domain",
+                  "// events, and no listener is wired yet. An empty array here is the",
+                  "// correct result, not a defect."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts?staffId=staff-1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts"],
+              "query": [{ "key": "staffId", "value": "staff-1" }]
+            }
+          }
+        },
+        {
+          "name": "Rule 2 check - POST /api/alerts must not exist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('405 or 404 - no create route, so the event bus cannot be bypassed', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([404, 405]);",
+                  "});",
+                  "pm.test('did not create a notification (201 would be a rule 2 regression)', () => {",
+                  "    pm.expect(pm.response.code).to.not.eql(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/alerts", "host": ["{{baseUrl}}"], "path": ["api", "alerts"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientStaffId\": \"staff-1\",\n  \"alertType\": \"SLA_BREACH\",\n  \"channel\": \"IN_APP\",\n  \"message\": \"bypass attempt\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Reports",
+      "item": [
+        {
+          "name": "Store summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('scoped to the requested store', () => pm.expect(body.storeId).to.eql(pm.collectionVariables.get('storeId')));",
+                  "pm.test('aggregates the programme created earlier', () => pm.expect(body.programmeCount).to.be.above(0));",
+                  "pm.test('aggregates the tasks created earlier', () => pm.expect(body.taskCount).to.be.above(0));",
+                  "pm.test('completionRate is a ratio between 0 and 1', () => {",
+                  "    pm.expect(body.completionRate).to.be.at.least(0);",
+                  "    pm.expect(body.completionRate).to.be.at.most(1);",
+                  "});",
+                  "pm.test('completionRate matches completedCount / taskCount', () => {",
+                  "    const expected = body.taskCount === 0 ? 0 : body.completedCount / body.taskCount;",
+                  "    pm.expect(body.completionRate).to.be.closeTo(expected, 0.0001);",
+                  "});",
+                  "pm.test('overdueByCategory present', () => pm.expect(body.overdueByCategory).to.be.an('object'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/store/{{storeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "store", "{{storeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Rule 5 check - reports exposes no write verb",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('405 or 404 - reports is read-only by construction', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/store/{{storeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "store", "{{storeId}}"]
+            },
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Error contract (rule 3)",
+      "item": [
+        {
+          "name": "Blank title -> 400 VALIDATION_ERROR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(body.code).to.eql('VALIDATION_ERROR'));",
+                  "pm.test('body shape is exactly code/message/timestamp', () => {",
+                  "    pm.expect(Object.keys(body).sort()).to.eql(['code', 'message', 'timestamp']);",
+                  "});",
+                  "pm.test('no stack trace or framework fields leaked', () => {",
+                  "    pm.expect(body).to.not.have.any.keys('trace', 'exception', 'path', 'error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/activities", "host": ["{{baseUrl}}"], "path": ["api", "activities"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"   \",\n  \"storeId\": \"{{storeId}}\"\n}" }
+          }
+        },
+        {
+          "name": "Unknown enum value -> 400 VALIDATION_ERROR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400, not 500 - unknown enum is a validation failure', () => pm.response.to.have.status(400));",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/activities", "host": ["{{baseUrl}}"], "path": ["api", "activities"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Reset endcap 3\",\n  \"storeId\": \"{{storeId}}\",\n  \"category\": \"SHELF_WIBBLE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Missing status field -> 400 VALIDATION_ERROR (no NPE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400, not 500 - null status is guarded, not caught as NPE', () => pm.response.to.have.status(400));",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/{{taskId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "{{taskId}}", "status"]
+            },
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Unknown id -> 404 NOT_FOUND",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "pm.test('code is NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "Programmes list with no filter -> 400 VALIDATION_ERROR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/programmes", "host": ["{{baseUrl}}"], "path": ["api", "programmes"] }
+          }
+        }
+      ]
+    }
+  ]
+}
